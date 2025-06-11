@@ -1,13 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">#607D8B</color>
-    <color name="colorPrimaryDark">#37474F</color>
-    <color name="colorAccent">#9E9E9E</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="row_bg_color_odd">@android:color/white</color>
+    <color name="row_bg_color_even">#eee</color>
     <color name="colorNormal">#212121</color>
     <color name="colorWarning">#00007f</color>
     <color name="colorError">#7f0000</color>
-    <color name="row_bg_color_odd">@android:color/white</color>
-    <color name="row_bg_color_even">#eee</color>
-    <color name="filtered_keyword_background">#FF0000</color>
-    <color name="search_word_background">#FFFF00</color>
 </resources>
