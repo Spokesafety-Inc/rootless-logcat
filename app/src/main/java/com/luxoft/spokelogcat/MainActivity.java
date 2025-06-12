@@ -82,8 +82,7 @@ public class MainActivity extends AppCompatActivity {
 
         Button saveButton = findViewById(R.id.saveButton);
         saveButton.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v)
-            {
+            public void onClick(View v) {
                 saveLogs();
             }
         });
@@ -150,12 +149,13 @@ public class MainActivity extends AppCompatActivity {
         } catch (IOException e) {
             Log.w(TAG, e);
         }
-//        Uri uri = FileProvider.getUriForFile(this, getPackageName() , file);
-//        Intent intent = new Intent(Intent.ACTION_SEND);
-//        intent.setType("text/*");
-//        intent.putExtra(Intent.EXTRA_STREAM, uri);
-//        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-//        Intent.createChooser(intent, "Share");
+        Uri uri = FileProvider.getUriForFile(this, getPackageName() , file);
+        Intent intent = new Intent(Intent.ACTION_SEND);
+        intent.setType("text/*");
+        intent.putExtra(Intent.EXTRA_STREAM, uri);
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        Intent.createChooser(intent, "Share");
+        startActivity(intent);
     }
 
     private KeyPair getKeyPair() throws GeneralSecurityException, IOException {
