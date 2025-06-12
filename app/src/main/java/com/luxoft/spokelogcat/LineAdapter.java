@@ -20,8 +20,6 @@ public class LineAdapter extends RecyclerView.Adapter<LineAdapter.LineViewHolder
     private List<Line> linesAll = new ArrayList<Line>();
     private List<Line> linesFiltered = new ArrayList<Line>();
 
-    public List<Line> lines;
-
     public static class LineViewHolder extends RecyclerView.ViewHolder {
         private final TextView textView;
 
@@ -35,7 +33,9 @@ public class LineAdapter extends RecyclerView.Adapter<LineAdapter.LineViewHolder
         }
     }
 
-   // get() = linesFiltered
+    public List<Line> lines() {
+        return linesFiltered;
+    }
 
     void clear() {
         linesAll.clear();

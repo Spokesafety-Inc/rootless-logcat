@@ -19,6 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Test Application"
+rootProject.name = "Spoke Logcat"
 include(":app")
  

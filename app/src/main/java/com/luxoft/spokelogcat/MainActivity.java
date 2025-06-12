@@ -1,7 +1,9 @@
 package com.luxoft.spokelogcat;
 
 import android.annotation.SuppressLint;
+import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.icu.text.SimpleDateFormat;
 import android.icu.util.Calendar;
@@ -13,6 +15,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.FileProvider;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -21,6 +24,9 @@ import androidx.recyclerview.widget.RecyclerView;
 import android.preference.PreferenceManager;
 import android.util.Base64;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.KeyFactory;
@@ -37,6 +43,7 @@ public class MainActivity extends AppCompatActivity {
     private LineAdapter adapter;
     private final String appName = "com.spoke.safety";
     private RecyclerView recyclerView;
+    private EditText logFileName;
     private ReaderTask readerTask = null;
 
     private class StatusUpdate {
@@ -49,44 +56,16 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-//    private int getAppId(String processName)
-//    {
-//        int pID = 0;
-//        ActivityManager am = (ActivityManager)this.getSystemService(ACTIVITY_SERVICE);
-//        List l = am.getRunningAppProcesses();
-//        Iterator i = l.iterator();
-//        PackageManager pm = this.getPackageManager();
-//        while(i.hasNext())
-//        {
-//            ActivityManager.RunningAppProcessInfo info = (ActivityManager.RunningAppProcessInfo)(i.next());
-//            try
-//            {
-//                if(info.processName == processName)
-//                {
-//                    CharSequence c = pm.getApplicationLabel(pm.getApplicationInfo(info.processName, PackageManager.GET_META_DATA));
-//                    Log.d("Process", "Id: "+ info.pid +" ProcessName: "+ info.processName +"  Label: "+c.toString());
-//                    //processName = c.toString();
-//                    pID = info.pid;
-//                }
-//            }
-//            catch(Exception e)
-//            {
-//                //Log.d("Process", "Error>> :"+ e.toString());
-//            }
-//        }
-//        Log.d("Process", "PID :" + pID);
-//        return pID;
-//    }
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
 
-        EditText logFileName = findViewById(R.id.logFileName);
+        logFileName = findViewById(R.id.logFileName);
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmm").format(Calendar.getInstance().getTime());
-        logFileName.setText(timeStamp + ".log");
+        timeStamp += ".log";
+        logFileName.setText(timeStamp);
 
         recyclerView = findViewById(R.id.recyclerView);
         adapter = new LineAdapter();
@@ -105,11 +84,7 @@ public class MainActivity extends AppCompatActivity {
         saveButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v)
             {
-
-                //int pID = getAppId("com.spoke.safety");
-                //int progress = seekBar.getProgress();
-                //int rand = new Random().nextInt(progress);
-                //resultsTextView.setText(Integer.toString(pID));
+                saveLogs();
             }
         });
 
@@ -157,6 +132,32 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void saveLogs() {
+        String fileName = logFileName.getText().toString();
+        File file = new File(getExternalCacheDir().toString() + "/" + fileName);
+        if (file.exists()) {
+            file.delete();
+        }
+        try {
+            file.createNewFile();
+            Log.w(TAG, "Log file created: " + file.getCanonicalPath());
+            BufferedWriter writer = new BufferedWriter(new FileWriter(file));
+            for (Line line : adapter.lines()) {
+                writer.write(line.content);
+                writer.newLine();
+            }
+            writer.close();
+        } catch (IOException e) {
+            Log.w(TAG, e);
+        }
+//        Uri uri = FileProvider.getUriForFile(this, getPackageName() , file);
+//        Intent intent = new Intent(Intent.ACTION_SEND);
+//        intent.setType("text/*");
+//        intent.putExtra(Intent.EXTRA_STREAM, uri);
+//        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+//        Intent.createChooser(intent, "Share");
+    }
+
     private KeyPair getKeyPair() throws GeneralSecurityException, IOException {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
         KeyPair keyPair;
@@ -197,15 +198,6 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public Void doInBackground(Void... params) {
             Reader reader = new RemoteReader(keyPair, appName);
-//            reader.read(Reader.UpdateHandler {
-//                @Override boolean isCancelled;
-//                get() = this@ReaderTask.isCancelled
-//
-//                @Override
-//                void update(int status, List<String> lines) {
-//                    publishProgress(StatusUpdate(status, lines));
-//                };
-//            });
             reader.read(new Reader.UpdateHandler() {
                 @Override
                 public boolean isCancelled() {
@@ -244,6 +236,4 @@ public class MainActivity extends AppCompatActivity {
     private static String TAG = MainActivity.class.getSimpleName();
     private static String KEY_PUBLIC = "publicKey";
     private static String KEY_PRIVATE = "privateKey";
-    private static String KEY_WARNING_SHOWN = "warningShown";
-    private static String TEMP_FILE = "/logcat.txt";
 }
