@@ -21,7 +21,7 @@ public class RemoteReader implements Reader {
     public void read(Reader.UpdateHandler updateHandler) {
         AdbConnection connection = null;
         try {
-            updateHandler.update(/*R.string.status_connecting*/0, null);
+            updateHandler.update(R.string.status_connecting, null);
             Socket socket = new Socket("localhost", 5555);
             AdbCrypto crypto = AdbCrypto.loadAdbKeyPair(
                     data -> Base64.encodeToString(data, Base64.NO_WRAP),
@@ -29,10 +29,9 @@ public class RemoteReader implements Reader {
             );
             connection = AdbConnection.create(socket, crypto);
             connection.connect();
-            updateHandler.update(/*R.string.status_opening*/1, null);
-            //val stream = connection.open("shell:logcat -v time")
+            updateHandler.update(R.string.status_opening, null);
             AdbStream stream = connection.open("shell:logcat --pid=$(pidof " + appName + ")");
-            updateHandler.update(/*R.string.status_active*/2, null);
+            updateHandler.update(R.string.status_active, null);
             while (!updateHandler.isCancelled()) {
                 List<String> lines = new ArrayList<>();
                 String content = new String(stream.read());
@@ -42,10 +41,10 @@ public class RemoteReader implements Reader {
                         lines.add(line);
                     }
                 }
-
                 updateHandler.update(0, lines);
             }
         } catch (InterruptedException e) {
+            Log.w(TAG, e);
             try {
                 if (connection != null) {
                     connection.close();

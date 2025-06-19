@@ -10,6 +10,7 @@ import android.icu.util.Calendar;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -34,17 +35,17 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.ArrayList;
 import java.util.List;
-
-import kotlin.jvm.Throws;
 
 public class MainActivity extends AppCompatActivity {
     private KeyPair keyPair;
     private LineAdapter adapter;
     private final String appName = "com.spoke.safety";
     private RecyclerView recyclerView;
-    private EditText logFileName;
+    private EditText tagName;
     private ReaderTask readerTask = null;
+    private MenuItem statusItem = null;
 
     private class StatusUpdate {
         public final int statusMessage;
@@ -62,11 +63,7 @@ public class MainActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
 
-        logFileName = findViewById(R.id.logFileName);
-        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmm").format(Calendar.getInstance().getTime());
-        timeStamp += ".log";
-        logFileName.setText(timeStamp);
-
+        tagName = findViewById(R.id.tagName);
         recyclerView = findViewById(R.id.recyclerView);
         adapter = new LineAdapter();
         recyclerView.setAdapter(adapter);
@@ -80,12 +77,8 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        Button saveButton = findViewById(R.id.saveButton);
-        saveButton.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                saveLogs();
-            }
-        });
+        Button tagButton = findViewById(R.id.tagButton);
+        tagButton.setOnClickListener(v -> injectTag());
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
@@ -101,13 +94,39 @@ public class MainActivity extends AppCompatActivity {
             Log.w(TAG, e);
         }
 
-        restartReader();
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+        if (!preferences.getBoolean(KEY_WARNING_SHOWN, false)) {
+            new WarningFragment().show(getSupportFragmentManager(), null);
+            preferences.edit().putBoolean(KEY_WARNING_SHOWN, true).apply();
+        }
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu, menu);
+        statusItem = menu.findItem(R.id.miStatus);
         restartReader();
         return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int itemId = item.getItemId();
+        if (itemId == R.id.miShare) {
+            saveLogs();
+        } else if (itemId == R.id.miReconnect) {
+            restartReader();
+        } else if (itemId == R.id.miSettings) {
+            openSettings();
+        }
+        else {
+            return false;
+        }
+        return true;
+    }
+
+    private void openSettings() {
+        // TODO
     }
 
     @Override
@@ -132,7 +151,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void saveLogs() {
-        String fileName = logFileName.getText().toString();
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmm").format(Calendar.getInstance().getTime());
+        String fileName = String.format("%s.log", timeStamp);
         File file = new File(getExternalCacheDir().toString() + "/" + fileName);
         if (file.exists()) {
             file.delete();
@@ -156,6 +176,12 @@ public class MainActivity extends AppCompatActivity {
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         Intent.createChooser(intent, "Share");
         startActivity(intent);
+    }
+
+    private void injectTag() {
+        String tag = tagName.getText().toString();
+        String timeStamp = new SimpleDateFormat("MM-dd HH:mm:ss.SSS").format(Calendar.getInstance().getTime());
+        adapter.addItems(new ArrayList<>(List.of(String.format("%s D %s", timeStamp, tag))));
     }
 
     private KeyPair getKeyPair() throws GeneralSecurityException, IOException {
@@ -216,14 +242,14 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onProgressUpdate(StatusUpdate... values) {
             for (StatusUpdate statusUpdate : values) {
-//                if (statusUpdate.statusMessage != 0) {
-//                    statusItem?.setTitle(statusUpdate.statusMessage)
+                if (statusUpdate.statusMessage != 0) {
+                    statusItem.setTitle(statusUpdate.statusMessage);
 //                    reconnectItem?.isVisible = statusUpdate.statusMessage != R.string.status_active
 //                    scrollItem?.isVisible = statusUpdate.statusMessage == R.string.status_active
 //                    filterItem?.isVisible = statusUpdate.statusMessage == R.string.status_active
 //                    searchItem?.isVisible = statusUpdate.statusMessage == R.string.status_active
 //                    moreMenuItem?.isVisible = statusUpdate.statusMessage == R.string.status_active
-//                }
+                }
                 if (statusUpdate.lines != null) {
                     adapter.addItems(statusUpdate.lines);
                     recyclerView.scrollToPosition(adapter.getItemCount() - 1);
@@ -236,4 +262,5 @@ public class MainActivity extends AppCompatActivity {
     private static String TAG = MainActivity.class.getSimpleName();
     private static String KEY_PUBLIC = "publicKey";
     private static String KEY_PRIVATE = "privateKey";
+    private static String KEY_WARNING_SHOWN = "warningShown";
 }
