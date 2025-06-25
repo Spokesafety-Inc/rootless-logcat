@@ -3,22 +3,26 @@ package com.luxoft.spokelogcat;
 import static java.util.Locale.filter;
 
 import android.content.Context;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.*;
 
 //import com.tananaev.logcat.LineAdapter.*
 //import com.tananaev.logcat.StringUtils.containsIgnoreCase
-//import com.tananaev.logcat.StringUtils.indexOfIgnoreCase
+import com.luxoft.spokelogcat.StringUtils;
 
 public class LineAdapter extends RecyclerView.Adapter<LineAdapter.LineViewHolder> {
-    private List<Line> linesAll = new ArrayList<Line>();
-    private List<Line> linesFiltered = new ArrayList<Line>();
+    private List<Line> linesAll = new ArrayList<>();
+    private List<Line> linesFiltered = new ArrayList<>();
+    private String level;
+    private String keyword;
 
     public static class LineViewHolder extends RecyclerView.ViewHolder {
         private final TextView textView;
@@ -36,14 +40,21 @@ public class LineAdapter extends RecyclerView.Adapter<LineAdapter.LineViewHolder
     public List<Line> lines() {
         return linesFiltered;
     }
+    public String level() { return level; }
+    public String keyword() { return keyword; }
 
-    void clear() {
+    @Override
+    public int getItemCount() {
+        return linesFiltered.size();
+    }
+
+    public void clear() {
         linesAll.clear();
         linesFiltered.clear();
         notifyDataSetChanged();
     }
 
-    void addItems(List<String> lines) {
+    public void addItems(List<String> lines) {
         List<Line> linesAll = new LinkedList<>();
         for (String line : lines) {
             if (line != null) {
@@ -51,43 +62,44 @@ public class LineAdapter extends RecyclerView.Adapter<LineAdapter.LineViewHolder
             }
         }
         this.linesAll.addAll(linesAll);
-        List<Line> linesFiltered = linesAll; // filter(linesAll)
+        List<Line> linesFiltered = filter(linesAll);
         this.linesFiltered.addAll(linesFiltered);
         notifyItemRangeInserted(this.linesFiltered.size() - linesFiltered.size(), linesFiltered.size());
     }
 
-//    private fun filter(lines: List<Line>): MutableList<Line> {
-//        val linesFiltered: MutableList<Line> = LinkedList()
-//        val hasKeyword = !TextUtils.isEmpty(keyword)
-//        val hasTag = !TextUtils.isEmpty(tag)
-//        if (hasKeyword || hasTag) {
-//            for (line in lines) {
-//                if (hasTag && !containsIgnoreCase(line.tag, tag)) {
-//                    continue
-//                }
-//                if (hasKeyword && !containsIgnoreCase(line.content, keyword)) {
-//                    continue
-//                }
-//                linesFiltered.add(line)
-//            }
-//        } else {
-//            linesFiltered.addAll(lines)
-//        }
-//        return linesFiltered
-//    }
+    private List<Line> filter(List<Line> lines) {
+        List<Line> linesFiltered = new ArrayList<>();
+        boolean hasKeyword = !TextUtils.isEmpty(keyword);
+        boolean hasLevel = !TextUtils.isEmpty(level);
+        if (hasKeyword || hasLevel) {
+            for (Line line : lines) {
+                if (hasLevel && !StringUtils.containsIgnoreCase(line.level, level)) {
+                    continue;
+                }
+                if (hasKeyword && !StringUtils.containsIgnoreCase(line.content, keyword)) {
+                    continue;
+                }
+                linesFiltered.add(line);
+            }
+        } else {
+            linesFiltered.addAll(lines);
+        }
+        return linesFiltered;
+    }
 
-//    fun filter(tag: String?, keyword: String?) {
-//        this.tag = tag
-//        this.keyword = keyword
-//        linesFiltered = filter(linesAll)
-//        notifyDataSetChanged()
-//    }
-//
+    public void filter(String level, String keyword) {
+        this.level = level;
+        this.keyword = keyword;
+        linesFiltered = filter(linesAll);
+        notifyDataSetChanged();
+    }
+
 //    fun search(searchWord: String?) {
 //        this.searchWord = searchWord
 //        notifyDataSetChanged();
 //    }
 
+    @NonNull
     @Override
     public LineViewHolder onCreateViewHolder(ViewGroup parent, int viewType)  {
         LayoutInflater layoutInflater = LayoutInflater.from(parent.getContext());
@@ -116,11 +128,6 @@ public class LineAdapter extends RecyclerView.Adapter<LineAdapter.LineViewHolder
             default:
                 holder.textView.setTextColor(context.getResources().getColor(R.color.colorNormal));
         }
-    }
-
-    @Override
-    public int getItemCount() {
-        return linesFiltered.size();
     }
 
 //    private OnLongClickListener onItemLongClickListener = { v ->

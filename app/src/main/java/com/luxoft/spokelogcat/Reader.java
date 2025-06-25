@@ -8,5 +8,6 @@ public interface Reader {
         void update(int status, List<String> lines);
     }
 
-    void read(UpdateHandler updateHandler);
+    int     read(UpdateHandler updateHandler);
+    String getErrorMessage();
 }

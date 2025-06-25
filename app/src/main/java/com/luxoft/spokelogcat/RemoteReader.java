@@ -11,6 +11,7 @@ import java.util.List;
 public class RemoteReader implements Reader {
     private final KeyPair keyPair;
     private final String appName;
+    private String errMsg;
 
     public RemoteReader(KeyPair keyPair, String appName) {
         this.keyPair = keyPair;
@@ -18,8 +19,9 @@ public class RemoteReader implements Reader {
     }
 
     @Override
-    public void read(Reader.UpdateHandler updateHandler) {
+    public int read(Reader.UpdateHandler updateHandler) {
         AdbConnection connection = null;
+        errMsg = null;
         try {
             updateHandler.update(R.string.status_connecting, null);
             Socket socket = new Socket("localhost", 5555);
@@ -30,7 +32,7 @@ public class RemoteReader implements Reader {
             connection = AdbConnection.create(socket, crypto);
             connection.connect();
             updateHandler.update(R.string.status_opening, null);
-            AdbStream stream = connection.open("shell:logcat --pid=$(pidof " + appName + ")");
+            AdbStream stream = connection.open("shell:logcat -v time --pid=$(pidof " + appName + ")");
             updateHandler.update(R.string.status_active, null);
             while (!updateHandler.isCancelled()) {
                 List<String> lines = new ArrayList<>();
@@ -52,10 +54,22 @@ public class RemoteReader implements Reader {
             } catch (IOException ee) {
                 Log.w(TAG, ee);
             }
+            errMsg = e.getMessage();
         } catch (IOException e) {
             Log.w(TAG, e);
+            errMsg = e.getMessage();
         }
+        if (errMsg != null) {
+            updateHandler.update(R.string.status_failed, null);
+            return -1;
+        }
+        return 0;
     }
 
-    private static String TAG = RemoteReader.class.getSimpleName();
+    @Override
+    public String getErrorMessage() {
+        return errMsg;
+    }
+
+    private static final String TAG = RemoteReader.class.getSimpleName();
 }

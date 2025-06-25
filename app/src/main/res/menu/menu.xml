@@ -8,6 +8,12 @@
         android:title="@string/status_connecting"
         app:showAsAction="always"/>
     <item
+        android:id="@+id/miFilter"
+        android:icon="@drawable/ic_filter"
+        android:title="@string/menu_filter"
+        android:visible="false"
+        app:showAsAction="always"/>
+    <item
         android:id="@+id/miShare"
         android:title="@string/menu_share"
         android:icon="@drawable/ic_share"

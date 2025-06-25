@@ -1,6 +1,8 @@
 package com.luxoft.spokelogcat;
 
 import android.annotation.SuppressLint;
+import android.app.Dialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
@@ -9,12 +11,14 @@ import android.icu.text.SimpleDateFormat;
 import android.icu.util.Calendar;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import androidx.activity.EdgeToEdge;
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.FileProvider;
 import androidx.core.graphics.Insets;
@@ -24,6 +28,8 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import android.preference.PreferenceManager;
 import android.util.Base64;
+
+import com.luxoft.spokelogcat.view.FilterOptionsController;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -41,13 +47,14 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity {
     private KeyPair keyPair;
     private LineAdapter adapter;
-    private final String appName = "com.spoke.safety";
     private RecyclerView recyclerView;
     private EditText tagName;
     private ReaderTask readerTask = null;
     private MenuItem statusItem = null;
+    private MenuItem filterItem = null;
+    private boolean scroll = true;
 
-    private class StatusUpdate {
+    private static class StatusUpdate {
         public final int statusMessage;
         public final List<String> lines;
 
@@ -70,9 +77,9 @@ public class MainActivity extends AppCompatActivity {
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
-            public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
+            public void onScrollStateChanged(@NonNull RecyclerView recyclerView, int newState) {
                 if (newState != RecyclerView.SCROLL_STATE_DRAGGING) {
-                    recyclerView.scrollToPosition(adapter.getItemCount() - 1);
+                    updateScrollState(false);
                 }
             }
         });
@@ -88,15 +95,17 @@ public class MainActivity extends AppCompatActivity {
 
         try {
             keyPair = getKeyPair(); // crashes on non-main thread
-        } catch (GeneralSecurityException e) {
-            Log.w(TAG, e);
-        } catch (IOException e) {
+        } catch (GeneralSecurityException | IOException e) {
             Log.w(TAG, e);
         }
 
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
         if (!preferences.getBoolean(KEY_WARNING_SHOWN, false)) {
-            new WarningFragment().show(getSupportFragmentManager(), null);
+            new WarningFragment(getString(R.string.warning_text), (DialogInterface dialog, int which) -> {
+                Intent intent = new Intent(Intent.ACTION_VIEW);
+                intent.setData(Uri.parse("https://github.com/tananaev/rootless-logcat/blob/master/README.md"));
+                startActivity(intent);
+            }).show(getSupportFragmentManager(), null);
             preferences.edit().putBoolean(KEY_WARNING_SHOWN, true).apply();
         }
     }
@@ -105,6 +114,7 @@ public class MainActivity extends AppCompatActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu, menu);
         statusItem = menu.findItem(R.id.miStatus);
+        filterItem = menu.findItem(R.id.miFilter);
         restartReader();
         return true;
     }
@@ -117,7 +127,9 @@ public class MainActivity extends AppCompatActivity {
         } else if (itemId == R.id.miReconnect) {
             restartReader();
         } else if (itemId == R.id.miSettings) {
-            openSettings();
+            showSettingsDialog();
+        } else if (itemId == R.id.miFilter) {
+            showFilterDialog();
         }
         else {
             return false;
@@ -125,8 +137,36 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
 
-    private void openSettings() {
+    private void showSettingsDialog() {
         // TODO
+    }
+
+    private void showFilterDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        FilterOptionsController filterOptionsViewController = new FilterOptionsController(this);
+        filterOptionsViewController.setLevel(adapter.level());
+        filterOptionsViewController.setKeyword(adapter.keyword());
+        builder.setView(filterOptionsViewController.baseView);
+        builder.setPositiveButton(android.R.string.ok, (dialog, which) -> {
+            String level = filterOptionsViewController.getLevel();
+            String keyword = filterOptionsViewController.getKeyword();
+            adapter.filter(level, keyword);
+            filterOptionsViewController.saveLevelKeyword(level, keyword);
+        });
+        builder.setNegativeButton(android.R.string.cancel, null);
+        Dialog dialog = builder.create();
+        dialog.getWindow().setGravity(Gravity.TOP);
+        dialog.show();
+    }
+
+    private void updateScrollState(boolean scroll) {
+        this.scroll = scroll;
+        if (scroll) {
+            //scrollItem!!.setIcon(R.drawable.ic_vertical_align_bottom);
+            recyclerView.scrollToPosition(adapter.getItemCount() - 1);
+        } else {
+            //scrollItem!!.setIcon(R.drawable.ic_vertical_align_center);
+        }
     }
 
     @Override
@@ -145,9 +185,7 @@ public class MainActivity extends AppCompatActivity {
     private void restartReader() {
         stopReader();
         readerTask = new ReaderTask();
-        if (readerTask != null) {
-            readerTask.execute();
-        }
+        readerTask.execute();
     }
 
     private void saveLogs() {
@@ -223,8 +261,8 @@ public class MainActivity extends AppCompatActivity {
     private class ReaderTask extends AsyncTask<Void, StatusUpdate, Void> {
         @Override
         public Void doInBackground(Void... params) {
-            Reader reader = new RemoteReader(keyPair, appName);
-            reader.read(new Reader.UpdateHandler() {
+            Reader reader = new RemoteReader(keyPair, APP_NAME);
+            int retCode = reader.read(new Reader.UpdateHandler() {
                 @Override
                 public boolean isCancelled() {
                     return ReaderTask.this.isCancelled();
@@ -235,6 +273,9 @@ public class MainActivity extends AppCompatActivity {
                     publishProgress(new StatusUpdate(status, lines));
                 }
             });
+            if (retCode != 0) {
+                new WarningFragment(reader.getErrorMessage(), null).show(getSupportFragmentManager(), null);
+            }
 
             return null;
         }
@@ -244,23 +285,25 @@ public class MainActivity extends AppCompatActivity {
             for (StatusUpdate statusUpdate : values) {
                 if (statusUpdate.statusMessage != 0) {
                     statusItem.setTitle(statusUpdate.statusMessage);
-//                    reconnectItem?.isVisible = statusUpdate.statusMessage != R.string.status_active
+                    filterItem.setVisible(statusUpdate.statusMessage == R.string.status_active);
 //                    scrollItem?.isVisible = statusUpdate.statusMessage == R.string.status_active
-//                    filterItem?.isVisible = statusUpdate.statusMessage == R.string.status_active
 //                    searchItem?.isVisible = statusUpdate.statusMessage == R.string.status_active
 //                    moreMenuItem?.isVisible = statusUpdate.statusMessage == R.string.status_active
                 }
                 if (statusUpdate.lines != null) {
                     adapter.addItems(statusUpdate.lines);
-                    recyclerView.scrollToPosition(adapter.getItemCount() - 1);
+                    if (scroll) {
+                        recyclerView.scrollToPosition(adapter.getItemCount() - 1);
+                    }
                 }
             }
         }
 
     } // ReaderTask class
 
-    private static String TAG = MainActivity.class.getSimpleName();
-    private static String KEY_PUBLIC = "publicKey";
-    private static String KEY_PRIVATE = "privateKey";
-    private static String KEY_WARNING_SHOWN = "warningShown";
+    private static final String APP_NAME = "com.spoke.safety";
+    private static final String TAG = MainActivity.class.getSimpleName();
+    private static final String KEY_PUBLIC = "publicKey";
+    private static final String KEY_PRIVATE = "privateKey";
+    private static final String KEY_WARNING_SHOWN = "warningShown";
 }
