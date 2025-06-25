@@ -4,15 +4,13 @@ import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.DialogInterface;
 import android.os.Bundle;
-import android.content.Intent;
-import android.net.Uri;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.DialogFragment;
 
 public class WarningFragment extends DialogFragment {
     private final String message;
-    private DialogInterface.OnClickListener moreBtnCallback;
+    private final DialogInterface.OnClickListener moreBtnCallback;
 
     public WarningFragment(String msg, DialogInterface.OnClickListener moreCallback) {
         message = msg;

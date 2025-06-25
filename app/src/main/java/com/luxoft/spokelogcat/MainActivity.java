@@ -16,6 +16,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Button;
 import android.widget.EditText;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
@@ -48,6 +49,7 @@ public class MainActivity extends AppCompatActivity {
     private KeyPair keyPair;
     private LineAdapter adapter;
     private RecyclerView recyclerView;
+    private FloatingActionButton scrollBtn;
     private EditText tagName;
     private ReaderTask readerTask = null;
     private MenuItem statusItem = null;
@@ -71,6 +73,11 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         tagName = findViewById(R.id.tagName);
+
+        scrollBtn = findViewById(R.id.floatingActionButton);
+        scrollBtn.setVisibility(RecyclerView.INVISIBLE);
+        scrollBtn.setOnClickListener(view -> { updateScrollState(!scroll); });
+
         recyclerView = findViewById(R.id.recyclerView);
         adapter = new LineAdapter();
         recyclerView.setAdapter(adapter);
@@ -161,11 +168,9 @@ public class MainActivity extends AppCompatActivity {
 
     private void updateScrollState(boolean scroll) {
         this.scroll = scroll;
+        scrollBtn.setVisibility(scroll ? RecyclerView.INVISIBLE : RecyclerView.VISIBLE);
         if (scroll) {
-            //scrollItem!!.setIcon(R.drawable.ic_vertical_align_bottom);
             recyclerView.scrollToPosition(adapter.getItemCount() - 1);
-        } else {
-            //scrollItem!!.setIcon(R.drawable.ic_vertical_align_center);
         }
     }
 

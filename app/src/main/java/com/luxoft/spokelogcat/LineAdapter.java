@@ -1,7 +1,5 @@
 package com.luxoft.spokelogcat;
 
-import static java.util.Locale.filter;
-
 import android.content.Context;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
@@ -13,10 +11,6 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.*;
-
-//import com.tananaev.logcat.LineAdapter.*
-//import com.tananaev.logcat.StringUtils.containsIgnoreCase
-import com.luxoft.spokelogcat.StringUtils;
 
 public class LineAdapter extends RecyclerView.Adapter<LineAdapter.LineViewHolder> {
     private List<Line> linesAll = new ArrayList<>();
