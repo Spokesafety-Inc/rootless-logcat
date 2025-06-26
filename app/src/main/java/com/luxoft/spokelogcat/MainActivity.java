@@ -2,6 +2,7 @@ package com.luxoft.spokelogcat;
 
 import android.annotation.SuppressLint;
 import android.app.Dialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -55,6 +56,7 @@ public class MainActivity extends AppCompatActivity {
     private MenuItem statusItem = null;
     private MenuItem filterItem = null;
     private boolean scroll = true;
+    private Context mContext;
 
     private static class StatusUpdate {
         public final int statusMessage;
@@ -69,6 +71,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        mContext = this;
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
 
@@ -108,7 +111,7 @@ public class MainActivity extends AppCompatActivity {
 
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
         if (!preferences.getBoolean(KEY_WARNING_SHOWN, false)) {
-            new WarningFragment(getString(R.string.warning_text), (DialogInterface dialog, int which) -> {
+            new WarningFragment(mContext, getString(R.string.warning_text), (DialogInterface dialog, int which) -> {
                 Intent intent = new Intent(Intent.ACTION_VIEW);
                 intent.setData(Uri.parse("https://github.com/tananaev/rootless-logcat/blob/master/README.md"));
                 startActivity(intent);
@@ -189,7 +192,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void restartReader() {
         stopReader();
-        readerTask = new ReaderTask();
+        readerTask = new ReaderTask(mContext);
         readerTask.execute();
     }
 
@@ -263,9 +266,16 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @SuppressLint("StaticFieldLeak")
-    private class ReaderTask extends AsyncTask<Void, StatusUpdate, Void> {
+    private class ReaderTask extends AsyncTask<Void, StatusUpdate, Integer> {
+        private final Context context;
+        private String errMessage;
+
+        public ReaderTask(Context mContext) {
+            this.context = mContext;
+        }
         @Override
-        public Void doInBackground(Void... params) {
+        public Integer doInBackground(Void... params) {
+            errMessage = null;
             Reader reader = new RemoteReader(keyPair, APP_NAME);
             int retCode = reader.read(new Reader.UpdateHandler() {
                 @Override
@@ -279,10 +289,23 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
             if (retCode != 0) {
-                new WarningFragment(reader.getErrorMessage(), null).show(getSupportFragmentManager(), null);
+                errMessage = reader.getErrorMessage();
             }
+            return retCode;
+        }
 
-            return null;
+        @Override
+        protected void onPostExecute(Integer result) {
+            super.onPostExecute(result);
+            if (result != 0) {
+                AlertDialog.Builder builder = new AlertDialog.Builder(context);
+                builder.setMessage(errMessage != null ? errMessage : getString(R.string.adb_failed))
+                       .setCancelable(false)
+                       .setNegativeButton(R.string.warning_close, (dialog, id) -> dialog.cancel());
+                builder.create().show();
+//                WarningFragment dialog = new WarningFragment(context, errMessage, null);
+//                dialog.show(getSupportFragmentManager(), null);
+            }
         }
 
         @Override
@@ -291,7 +314,6 @@ public class MainActivity extends AppCompatActivity {
                 if (statusUpdate.statusMessage != 0) {
                     statusItem.setTitle(statusUpdate.statusMessage);
                     filterItem.setVisible(statusUpdate.statusMessage == R.string.status_active);
-//                    scrollItem?.isVisible = statusUpdate.statusMessage == R.string.status_active
 //                    searchItem?.isVisible = statusUpdate.statusMessage == R.string.status_active
 //                    moreMenuItem?.isVisible = statusUpdate.statusMessage == R.string.status_active
                 }
