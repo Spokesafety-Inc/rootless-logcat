@@ -2,6 +2,8 @@ package com.luxoft.spokelogcat;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -139,6 +141,19 @@ public class AdbStream implements Closeable {
         return data;
     }
 
+    public void readAll() throws InterruptedException, IOException {
+        synchronized (readQueue) {
+            while (!isClosed && readQueue.poll() != null) {
+                // intentionally left blank
+            }
+
+            if (isClosed) {
+                throw new IOException("Stream closed");
+            }
+        }
+
+    }
+
     /**
      * Sends a write packet with a given String payload.
      *
@@ -148,8 +163,13 @@ public class AdbStream implements Closeable {
      */
     public void write(String payload) throws IOException, InterruptedException {
         /* ADB needs null-terminated strings */
-        write(payload.getBytes("UTF-8"), false);
-        write(new byte[]{0}, true);
+        payload += System.lineSeparator();
+        ByteBuffer bbuf = ByteBuffer.allocate(payload.length() + 1);
+        bbuf.put(payload.getBytes(StandardCharsets.UTF_8));
+        bbuf.put((byte) 0);
+        write(bbuf.array());
+        //write(payload.getBytes(StandardCharsets.UTF_8), false);
+        //write(new byte[]{0}, true);
     }
 
     /**

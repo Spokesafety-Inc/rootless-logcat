@@ -12,6 +12,7 @@ public class RemoteReader implements Reader {
     private final KeyPair keyPair;
     private final String appName;
     private String errMsg;
+    private boolean clearLogSet = false;
 
     public RemoteReader(KeyPair keyPair, String appName) {
         this.keyPair = keyPair;
@@ -22,6 +23,8 @@ public class RemoteReader implements Reader {
     public int read(Reader.UpdateHandler updateHandler) {
         AdbConnection connection = null;
         errMsg = null;
+        String readLogsCmd  = "logcat -v time --pid=$(pidof " + appName + ")";
+        String clearLogsCmd = "logcat -c";
         try {
             updateHandler.update(R.string.status_connecting, null);
             Socket socket = new Socket("localhost", 5555);
@@ -32,15 +35,32 @@ public class RemoteReader implements Reader {
             connection = AdbConnection.create(socket, crypto);
             connection.connect();
             updateHandler.update(R.string.status_opening, null);
-            AdbStream stream = connection.open("shell:logcat -v time --pid=$(pidof " + appName + ")");
+            AdbStream stream = connection.open("shell:");
+            stream.write(readLogsCmd);
             updateHandler.update(R.string.status_active, null);
             while (!updateHandler.isCancelled()) {
+                boolean needClearing;
+                synchronized (this) {
+                    needClearing = clearLogSet;
+                    if (clearLogSet) {
+                        clearLogSet = false;
+                    }
+                }
                 List<String> lines = new ArrayList<>();
-                String content = new String(stream.read());
-                String[] splitLines = content.split("\\r?\\n");
-                for (String line : splitLines) {
-                    if (!line.isEmpty()) {
-                        lines.add(line);
+                if (needClearing) {
+                    byte[] ctrlC = new byte[]{3}; // CTRL-C (ASCII 3)
+                    stream.write(ctrlC);
+                    stream.write(clearLogsCmd);
+                    stream.readAll();
+                    stream.write(System.lineSeparator() + readLogsCmd);
+                }
+                else {
+                    String content = new String(stream.read());
+                    String[] splitLines = content.split("\\r?\\n");
+                    for (String line : splitLines) {
+                        if (!line.isEmpty()) {
+                            lines.add(line);
+                        }
                     }
                 }
                 updateHandler.update(0, lines);
@@ -64,6 +84,13 @@ public class RemoteReader implements Reader {
             return -1;
         }
         return 0;
+    }
+
+    @Override
+    public void clearLogs() {
+        synchronized (this) {
+            clearLogSet = true;
+        }
     }
 
     @Override

@@ -32,7 +32,7 @@ public class LineAdapter extends RecyclerView.Adapter<LineAdapter.LineViewHolder
     }
 
     public List<Line> lines() {
-        return linesFiltered;
+        return linesAll;
     }
     public String level() { return level; }
     public String keyword() { return keyword; }
@@ -49,14 +49,14 @@ public class LineAdapter extends RecyclerView.Adapter<LineAdapter.LineViewHolder
     }
 
     public void addItems(List<String> lines) {
-        List<Line> linesAll = new LinkedList<>();
+        List<Line> newLines = new LinkedList<>();
         for (String line : lines) {
             if (line != null) {
-                linesAll.add(new Line(line));
+                newLines.add(new Line(line));
             }
         }
-        this.linesAll.addAll(linesAll);
-        List<Line> linesFiltered = filter(linesAll);
+        linesAll.addAll(newLines);
+        List<Line> linesFiltered = filter(newLines);
         this.linesFiltered.addAll(linesFiltered);
         notifyItemRangeInserted(this.linesFiltered.size() - linesFiltered.size(), linesFiltered.size());
     }

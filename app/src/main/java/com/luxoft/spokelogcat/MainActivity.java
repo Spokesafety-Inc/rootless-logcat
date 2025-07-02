@@ -95,7 +95,10 @@ public class MainActivity extends AppCompatActivity {
         });
 
         Button tagButton = findViewById(R.id.tagButton);
-        tagButton.setOnClickListener(v -> injectTag());
+        tagButton.setOnClickListener(v -> {
+            injectTag();
+            updateScrollState(true);
+        });
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
@@ -113,7 +116,7 @@ public class MainActivity extends AppCompatActivity {
         if (!preferences.getBoolean(KEY_WARNING_SHOWN, false)) {
             new WarningFragment(mContext, getString(R.string.warning_text), (DialogInterface dialog, int which) -> {
                 Intent intent = new Intent(Intent.ACTION_VIEW);
-                intent.setData(Uri.parse("https://github.com/tananaev/rootless-logcat/blob/master/README.md"));
+                intent.setData(Uri.parse(getString(R.string.warning_more_link)));
                 startActivity(intent);
             }).show(getSupportFragmentManager(), null);
             preferences.edit().putBoolean(KEY_WARNING_SHOWN, true).apply();
@@ -140,6 +143,8 @@ public class MainActivity extends AppCompatActivity {
             showSettingsDialog();
         } else if (itemId == R.id.miFilter) {
             showFilterDialog();
+        } else if (itemId == R.id.miClearLogs) {
+            clearLogs();
         }
         else {
             return false;
@@ -149,6 +154,13 @@ public class MainActivity extends AppCompatActivity {
 
     private void showSettingsDialog() {
         // TODO
+    }
+
+    private void clearLogs() {
+        adapter.clear();
+        if (readerTask != null) {
+            readerTask.clearLogs();
+        }
     }
 
     private void showFilterDialog() {
@@ -197,7 +209,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void saveLogs() {
-        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmm").format(Calendar.getInstance().getTime());
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmSS").format(Calendar.getInstance().getTime());
         String fileName = String.format("%s.log", timeStamp);
         File file = new File(getExternalCacheDir().toString() + "/" + fileName);
         if (file.exists()) {
@@ -227,7 +239,7 @@ public class MainActivity extends AppCompatActivity {
     private void injectTag() {
         String tag = tagName.getText().toString();
         String timeStamp = new SimpleDateFormat("MM-dd HH:mm:ss.SSS").format(Calendar.getInstance().getTime());
-        adapter.addItems(new ArrayList<>(List.of(String.format("%s D %s", timeStamp, tag))));
+        adapter.addItems(new ArrayList<>(List.of(String.format("%s D [DBG_TAG] %s", timeStamp, tag))));
     }
 
     private KeyPair getKeyPair() throws GeneralSecurityException, IOException {
@@ -269,14 +281,20 @@ public class MainActivity extends AppCompatActivity {
     private class ReaderTask extends AsyncTask<Void, StatusUpdate, Integer> {
         private final Context context;
         private String errMessage;
+        private Reader reader = null;
 
         public ReaderTask(Context mContext) {
             this.context = mContext;
         }
+
+        public void clearLogs() {
+            reader.clearLogs();
+        }
+
         @Override
         public Integer doInBackground(Void... params) {
             errMessage = null;
-            Reader reader = new RemoteReader(keyPair, APP_NAME);
+            reader = new RemoteReader(keyPair, APP_NAME);
             int retCode = reader.read(new Reader.UpdateHandler() {
                 @Override
                 public boolean isCancelled() {
@@ -291,6 +309,7 @@ public class MainActivity extends AppCompatActivity {
             if (retCode != 0) {
                 errMessage = reader.getErrorMessage();
             }
+            reader = null;
             return retCode;
         }
 
