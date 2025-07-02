@@ -4,10 +4,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Line {
-
+    public static final String DEBUG_TAG ="[DBG_TAG]";
     public char level = 'D';
     public String tag = null;
     public String content;
+    public boolean isDebugTag = false;
 
     public Line(String content) {
         this.content = content;
@@ -22,9 +23,11 @@ public class Line {
             if (group2 != null) {
                 tag = group2.trim();
             }
+        } else {
+            isDebugTag = dbgPattern.matcher(content).matches();
         }
     }
 
-    private static final Pattern linePattern = Pattern.compile("\\d\\d-\\d\\d \\d\\d:\\d\\d:\\d\\d\\.\\d\\d\\d (\\w)/(\\w+).*");
-
+    private static final Pattern linePattern = Pattern.compile("\\d\\d-\\d\\d \\d\\d:\\d\\d:\\d\\d\\.\\d\\d\\d (\\w)/(\\w*).*");
+    private static final Pattern dbgPattern = Pattern.compile("\\d\\d-\\d\\d \\d\\d:\\d\\d:\\d\\d\\.\\d\\d\\d (\\w) \\" + DEBUG_TAG + ".*");
 }

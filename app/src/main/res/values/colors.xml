@@ -8,6 +8,7 @@
     <color name="row_bg_color_odd">@android:color/white</color>
     <color name="row_bg_color_even">#eee</color>
     <color name="colorNormal">#212121</color>
-    <color name="colorWarning">#00007f</color>
-    <color name="colorError">#7f0000</color>
+    <color name="colorWarning">#f78707</color>
+    <color name="colorError">#f00c0c</color>
+    <color name="colorDebugTag">#0aab43</color>
 </resources>

@@ -50,12 +50,13 @@ public class MainActivity extends AppCompatActivity {
     private KeyPair keyPair;
     private LineAdapter adapter;
     private RecyclerView recyclerView;
-    private FloatingActionButton scrollBtn;
+    private FloatingActionButton scrollDownBtn;
+    private FloatingActionButton scrollUpBtn;
     private EditText tagName;
     private ReaderTask readerTask = null;
     private MenuItem statusItem = null;
     private MenuItem filterItem = null;
-    private boolean scroll = true;
+    private boolean autoscroll = true;
     private Context mContext;
 
     private static class StatusUpdate {
@@ -77,9 +78,17 @@ public class MainActivity extends AppCompatActivity {
 
         tagName = findViewById(R.id.tagName);
 
-        scrollBtn = findViewById(R.id.floatingActionButton);
-        scrollBtn.setVisibility(RecyclerView.INVISIBLE);
-        scrollBtn.setOnClickListener(view -> { updateScrollState(!scroll); });
+        scrollDownBtn = findViewById(R.id.scrollDownBtn);
+        scrollDownBtn.setVisibility(RecyclerView.INVISIBLE);
+        scrollDownBtn.setOnClickListener(view -> { updateScrollState(true); });
+
+        scrollUpBtn = findViewById(R.id.scrollUpBtn);
+        scrollUpBtn.setVisibility(RecyclerView.INVISIBLE);
+        scrollUpBtn.setOnClickListener(view -> {
+            updateScrollState(false);
+            recyclerView.scrollToPosition(0);
+            scrollUpBtn.setVisibility(RecyclerView.INVISIBLE);
+        });
 
         recyclerView = findViewById(R.id.recyclerView);
         adapter = new LineAdapter();
@@ -181,12 +190,13 @@ public class MainActivity extends AppCompatActivity {
         dialog.show();
     }
 
-    private void updateScrollState(boolean scroll) {
-        this.scroll = scroll;
-        scrollBtn.setVisibility(scroll ? RecyclerView.INVISIBLE : RecyclerView.VISIBLE);
-        if (scroll) {
+    private void updateScrollState(boolean autoscroll) {
+        this.autoscroll = autoscroll;
+        if (autoscroll) {
             recyclerView.scrollToPosition(adapter.getItemCount() - 1);
         }
+        scrollDownBtn.setVisibility(autoscroll ? RecyclerView.INVISIBLE : RecyclerView.VISIBLE);
+        scrollUpBtn.setVisibility(autoscroll ? RecyclerView.INVISIBLE : RecyclerView.VISIBLE);
     }
 
     @Override
@@ -239,7 +249,7 @@ public class MainActivity extends AppCompatActivity {
     private void injectTag() {
         String tag = tagName.getText().toString();
         String timeStamp = new SimpleDateFormat("MM-dd HH:mm:ss.SSS").format(Calendar.getInstance().getTime());
-        adapter.addItems(new ArrayList<>(List.of(String.format("%s D [DBG_TAG] %s", timeStamp, tag))));
+        adapter.addItems(new ArrayList<>(List.of(String.format("%s D %s %s", timeStamp, Line.DEBUG_TAG, tag))));
     }
 
     private KeyPair getKeyPair() throws GeneralSecurityException, IOException {
@@ -338,7 +348,7 @@ public class MainActivity extends AppCompatActivity {
                 }
                 if (statusUpdate.lines != null) {
                     adapter.addItems(statusUpdate.lines);
-                    if (scroll) {
+                    if (autoscroll) {
                         recyclerView.scrollToPosition(adapter.getItemCount() - 1);
                     }
                 }

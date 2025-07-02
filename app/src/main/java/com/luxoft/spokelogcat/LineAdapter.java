@@ -120,7 +120,12 @@ public class LineAdapter extends RecyclerView.Adapter<LineAdapter.LineViewHolder
                 holder.textView.setTextColor(context.getResources().getColor(R.color.colorError));
                 break;
             default:
-                holder.textView.setTextColor(context.getResources().getColor(R.color.colorNormal));
+                if (item.isDebugTag) {
+                    holder.textView.setTextColor(context.getResources().getColor(R.color.colorDebugTag));
+                }
+                else {
+                    holder.textView.setTextColor(context.getResources().getColor(R.color.colorNormal));
+                }
         }
     }
 
