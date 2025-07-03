@@ -22,7 +22,6 @@ import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.FileProvider;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -33,9 +32,6 @@ import android.util.Base64;
 
 import com.luxoft.spokelogcat.view.FilterOptionsController;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.KeyFactory;
@@ -58,6 +54,7 @@ public class MainActivity extends AppCompatActivity {
     private MenuItem filterItem = null;
     private boolean autoscroll = true;
     private Context mContext;
+    private LogSaver mLogSaver = null;
 
     private static class StatusUpdate {
         public final int statusMessage;
@@ -75,6 +72,8 @@ public class MainActivity extends AppCompatActivity {
         mContext = this;
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
+
+        mLogSaver = new LogSaver(this);
 
         tagName = findViewById(R.id.tagName);
 
@@ -144,8 +143,10 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int itemId = item.getItemId();
-        if (itemId == R.id.miShare) {
+        if (itemId == R.id.miSave) {
             saveLogs();
+        } else if (itemId == R.id.miShare) {
+            mLogSaver.shareLogs();
         } else if (itemId == R.id.miReconnect) {
             restartReader();
         } else if (itemId == R.id.miSettings) {
@@ -219,35 +220,17 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void saveLogs() {
-        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmSS").format(Calendar.getInstance().getTime());
-        String fileName = String.format("%s.log", timeStamp);
-        File file = new File(getExternalCacheDir().toString() + "/" + fileName);
-        if (file.exists()) {
-            file.delete();
-        }
-        try {
-            file.createNewFile();
-            Log.w(TAG, "Log file created: " + file.getCanonicalPath());
-            BufferedWriter writer = new BufferedWriter(new FileWriter(file));
-            for (Line line : adapter.lines()) {
-                writer.write(line.content);
-                writer.newLine();
-            }
-            writer.close();
-        } catch (IOException e) {
-            Log.w(TAG, e);
-        }
-        Uri uri = FileProvider.getUriForFile(this, getPackageName() , file);
-        Intent intent = new Intent(Intent.ACTION_SEND);
-        intent.setType("text/*");
-        intent.putExtra(Intent.EXTRA_STREAM, uri);
-        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        Intent.createChooser(intent, "Share");
-        startActivity(intent);
+        mLogSaver.saveLogs(null, adapter.lines());
     }
 
     private void injectTag() {
         String tag = tagName.getText().toString();
+        if (tag.isEmpty()) {
+            return;
+        }
+        mLogSaver.saveLogs(tag, adapter.lines());
+        clearLogs();
+
         String timeStamp = new SimpleDateFormat("MM-dd HH:mm:ss.SSS").format(Calendar.getInstance().getTime());
         adapter.addItems(new ArrayList<>(List.of(String.format("%s D %s %s", timeStamp, Line.DEBUG_TAG, tag))));
     }

@@ -7,7 +7,8 @@
     <string name="menu_filter">Filter</string>
     <string name="menu_settings">Settings</string>
     <string name="menu_reconnect">Reconnect</string>
-    <string name="menu_share">Share</string>
+    <string name="menu_save">Save</string>
+    <string name="menu_share">Share..</string>
     <string name="menu_clear_logs">Clear logs</string>
     <string name="warning_text">For this app to work, you need to enable remote debugging on the phone using following adb command:\n\nadb tcpip 5555</string>
     <string name="warning_more">More info</string>
