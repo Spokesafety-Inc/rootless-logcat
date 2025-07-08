@@ -2,58 +2,32 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
     android:padding="?attr/dialogPreferredPadding">
 
-    <LinearLayout
+    <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal">
+        android:hint="@string/hint_filter_by_level"
+        app:endIconMode="clear_text">
 
-        <AutoCompleteTextView
+        <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/level"
-            android:layout_width="0dp"
-            android:layout_height="48dp"
-            android:layout_weight="1"
-            android:hint="@string/hint_filter_by_level"
-            android:imeOptions="actionNext"
-            android:inputType="text"
-            android:maxLines="1" />
+            android:layout_width="match_parent"
+            android:layout_height="48dp"/>
+    </com.google.android.material.textfield.TextInputLayout>
 
-        <ImageView
-            android:id="@+id/clear_level"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_vertical"
-            android:contentDescription="@string/clear_button"
-            android:src="@android:drawable/ic_notification_clear_all" />
-
-    </LinearLayout>
-
-    <LinearLayout
+    <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="center_vertical"
-        android:orientation="horizontal">
+        android:hint="@string/hint_filter_by_keyword"
+        app:endIconMode="clear_text">
 
-        <AutoCompleteTextView
+        <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/keyword"
-            android:layout_width="0dp"
-            android:layout_height="48dp"
-            android:layout_weight="1"
-            android:hint="@string/hint_filter_by_keyword"
-            android:imeOptions="actionDone"
-            android:inputType="text"
-            android:maxLines="1" />
-
-        <ImageView
-            android:id="@+id/clear_keyword"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_vertical"
-            android:contentDescription="@string/clear_button"
-            android:src="@android:drawable/ic_notification_clear_all" />
-
-    </LinearLayout>
+            android:layout_width="match_parent"
+            android:layout_height="48dp"/>
+    </com.google.android.material.textfield.TextInputLayout>
 
 </LinearLayout>

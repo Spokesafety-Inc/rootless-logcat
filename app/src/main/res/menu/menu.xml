@@ -28,11 +28,16 @@
         android:title="@string/menu_reconnect"
         app:showAsAction="never"/>
     <item
+        android:id="@+id/miBltParedDevices"
+        android:title="@string/menu_blt_pared_dev"
+        app:showAsAction="never"/>
+    <item
         android:id="@+id/miClearLogs"
         android:title="@string/menu_clear_logs"
         app:showAsAction="never"/>
     <item
         android:id="@+id/miSettings"
         android:title="@string/menu_settings"
+        android:enabled="false"
         app:showAsAction="never"/>
 </menu>

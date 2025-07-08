@@ -23,7 +23,7 @@ public class RemoteReader implements Reader {
     public int read(Reader.UpdateHandler updateHandler) {
         AdbConnection connection = null;
         errMsg = null;
-        String readLogsCmd  = "logcat -v time --pid=$(pidof " + appName + ")";
+        String readLogsCmd  = "logcat -b all -v time --pid=$(pidof " + appName + ")";
         String clearLogsCmd = "logcat -c";
         try {
             updateHandler.update(R.string.status_connecting, null);

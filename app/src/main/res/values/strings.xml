@@ -10,12 +10,19 @@
     <string name="menu_save">Save</string>
     <string name="menu_share">Share..</string>
     <string name="menu_clear_logs">Clear logs</string>
+    <string name="menu_blt_pared_dev">Get pared devices</string>
     <string name="warning_text">For this app to work, you need to enable remote debugging on the phone using following adb command:\n\nadb tcpip 5555</string>
     <string name="warning_more">More info</string>
     <string name="warning_more_link">https://github.com/tananaev/rootless-logcat/blob/master/README.md</string>
     <string name="warning_close">Close</string>
     <string name="hint_filter_by_level">Filter by level</string>
     <string name="hint_filter_by_keyword">Filter by keyword</string>
-    <string name="clear_button">Clear</string>
+    <string name="hint_tag">Tag</string>
+    <string name="button_clear">Clear</string>
+    <string name="button_inject">Inject</string>
     <string name="adb_failed">ADB connection failed</string>
+    <string name="blt_permission_text">Bluetooth permission is required</string>
+    <string name="blt_no_pared_devices">No pared devices</string>
+    <string name="blt_pared_devices_title">Paired devices</string>
+    <string name="sdk_version_warn">SDK version should be >= </string>
 </resources>

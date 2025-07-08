@@ -16,21 +16,19 @@
 package com.luxoft.spokelogcat.view;
 
 import android.content.Context;
+
+import com.google.android.material.textfield.TextInputEditText;
 import com.luxoft.spokelogcat.Settings;
-import android.widget.AutoCompleteTextView;
 import android.view.LayoutInflater;
 import android.view.View;
 import com.luxoft.spokelogcat.R;
-
-import java.util.ArrayList;
-import java.util.Arrays;
 
 public class FilterOptionsController {
 
     public View baseView = null;
     private Context context = null;
-    private AutoCompleteTextView inputLevel = null;
-    private AutoCompleteTextView inputKeyword = null;
+    private TextInputEditText inputLevel = null;
+    private TextInputEditText inputKeyword = null;
     private final String[] levelHistory;
     private final String[] keywordHistory;
 
@@ -39,13 +37,8 @@ public class FilterOptionsController {
         baseView = LayoutInflater.from(context).inflate(R.layout.dialog_filter, null);
         inputLevel = baseView.findViewById(R.id.level);
         inputKeyword = baseView.findViewById(R.id.keyword);
-        baseView.findViewById(R.id.clear_level).setOnClickListener((View v) -> { inputLevel.setText(""); });
-        baseView.findViewById(R.id.clear_keyword).setOnClickListener((View v) -> { inputKeyword.setText(""); });
         levelHistory = Settings.getLevelHistory(context);
         keywordHistory = Settings.getKeywordHistory(context);
-        ViewUtils viewUtils = new ViewUtils();
-        viewUtils.setAutoCompleteTextViewAdapter(context, inputLevel, new ArrayList<>(Arrays.asList(levelHistory)));
-        viewUtils.setAutoCompleteTextViewAdapter(context, inputKeyword, new ArrayList<>(Arrays.asList(keywordHistory)));
     }
 
     public String getLevel() {

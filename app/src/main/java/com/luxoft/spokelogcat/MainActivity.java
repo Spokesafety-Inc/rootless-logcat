@@ -1,27 +1,37 @@
 package com.luxoft.spokelogcat;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Dialog;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothManager;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.icu.text.SimpleDateFormat;
 import android.icu.util.Calendar;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -29,6 +39,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import android.preference.PreferenceManager;
 import android.util.Base64;
+import android.widget.Toast;
 
 import com.luxoft.spokelogcat.view.FilterOptionsController;
 
@@ -41,6 +52,7 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 public class MainActivity extends AppCompatActivity {
     private KeyPair keyPair;
@@ -155,12 +167,91 @@ public class MainActivity extends AppCompatActivity {
             showFilterDialog();
         } else if (itemId == R.id.miClearLogs) {
             clearLogs();
+        } else if (itemId == R.id.miBltParedDevices) {
+            checkBltPermissions();
         }
         else {
             return false;
         }
         return true;
     }
+
+    private void checkBltPermissions() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            Toast.makeText(this, R.string.sdk_version_warn + Build.VERSION_CODES.S, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.BLUETOOTH_CONNECT},
+                    REQUEST_BLUETOOTH_CONNECT);
+        } else {
+            showBluetoothPairedDevices();
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQUEST_BLUETOOTH_CONNECT) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                showBluetoothPairedDevices();
+            } else {
+                Toast.makeText(this, R.string.blt_permission_text, Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    private void showBluetoothPairedDevices() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            Toast.makeText(this, R.string.sdk_version_warn + Build.VERSION_CODES.S, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        ArrayList<String> devicesList = getBluetoothPairedDevices();
+        if (devicesList == null) {
+            Toast.makeText(this, R.string.blt_no_pared_devices, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        ArrayAdapter<String> lineAdapter = new ArrayAdapter<>(this,
+                android.R.layout.simple_list_item_1, devicesList);
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(R.string.blt_pared_devices_title);
+        builder.setAdapter(lineAdapter, null);
+        builder.setPositiveButton(android.R.string.ok, null);
+        AlertDialog alert = builder.create();
+        alert.show();
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.S)
+    private ArrayList<String> getBluetoothPairedDevices() {
+        assert ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED;
+
+        BluetoothManager btManager = (BluetoothManager) getSystemService(BLUETOOTH_SERVICE);
+        Set<BluetoothDevice> pairedDevices = btManager.getAdapter().getBondedDevices();
+        if (!pairedDevices.isEmpty()) {
+            ArrayList<String> devicesList = new ArrayList<>();
+            for (BluetoothDevice device : pairedDevices) {
+                devicesList.add(String.format("%s at %s", device.getName(), device.getAddress()));
+            }
+            return devicesList;
+        }
+        return null;
+    }
+
+//    private boolean isConnected(BluetoothDevice device) {
+//        try {
+//            Method m = device.getClass().getDeclaredMethod("isConnected", (Class[]) null);
+//            m.setAccessible(true);
+//            boolean isConnected = (boolean) m.invoke(device, (Object[]) null);
+//            Log.w("tag", isConnected ? "connected" : "NOT connected");
+//            return isConnected;
+//        } catch (Exception e) {
+//            throw new IllegalStateException(e);
+//        }
+//    }
 
     private void showSettingsDialog() {
         // TODO
@@ -224,6 +315,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void injectTag() {
+        clearTagFocus();
         String tag = tagName.getText().toString();
         if (tag.isEmpty()) {
             return;
@@ -233,6 +325,15 @@ public class MainActivity extends AppCompatActivity {
 
         String timeStamp = new SimpleDateFormat("MM-dd HH:mm:ss.SSS").format(Calendar.getInstance().getTime());
         adapter.addItems(new ArrayList<>(List.of(String.format("%s D %s %s", timeStamp, Line.DEBUG_TAG, tag))));
+    }
+
+    private void clearTagFocus() {
+        View v = getCurrentFocus();
+        if (v != null) {
+            v.clearFocus();
+            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+            imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
+        }
     }
 
     private KeyPair getKeyPair() throws GeneralSecurityException, IOException {
@@ -345,4 +446,5 @@ public class MainActivity extends AppCompatActivity {
     private static final String KEY_PUBLIC = "publicKey";
     private static final String KEY_PRIVATE = "privateKey";
     private static final String KEY_WARNING_SHOWN = "warningShown";
+    private static final int REQUEST_BLUETOOTH_CONNECT = 1;
 }
